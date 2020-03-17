@@ -203,7 +203,7 @@ detect_vmx_features(void)
     rdmsr(IA32_VMX_PROCBASED_CTL2, lo, hi);
 	pr_info("Exit Controls MSR: 0x%llx\n",
 		(uint64_t)(lo | (uint64_t)hi << 32));
-	report_capability(vm_exit, 27, lo, hi);
+	report_capability(secondary_procbased, 27, lo, hi);
 
 	/* Exit controls */
 	rdmsr(IA32_VMX_EXIT_CTLS, lo, hi);
@@ -215,7 +215,7 @@ detect_vmx_features(void)
     rdmsr(IA32_VMX_EXIT_CTLS, lo, hi);
 	pr_info("Exit Controls MSR: 0x%llx\n",
 		(uint64_t)(lo | (uint64_t)hi << 32));
-	report_capability(vm_exit, 11, lo, hi);
+	report_capability(vm_entry, 11, lo, hi);
 }
 
 /*
