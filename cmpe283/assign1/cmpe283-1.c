@@ -212,7 +212,7 @@ detect_vmx_features(void)
 	report_capability(vm_exit, 13, lo, hi);
 
 	/* Entry controls */
-    rdmsr(IA32_VMX_EXIT_CTLS, lo, hi);
+    rdmsr(IA32_VMX_ENTRY_CTLS, lo, hi);
 	pr_info("Exit Controls MSR: 0x%llx\n",
 		(uint64_t)(lo | (uint64_t)hi << 32));
 	report_capability(vm_entry, 11, lo, hi);
