@@ -1054,16 +1054,55 @@ bool kvm_cpuid(struct kvm_vcpu *vcpu, u32 *eax, u32 *ebx,
 }
 EXPORT_SYMBOL_GPL(kvm_cpuid);
 
+atomic_t exits = ATOMIC_INIT(0);
+atomic_long_t total_time[65] = ATOMIC_INIT(0);
+atomic_t num_exits_arr[65] = ATOMIC_INIT(0);
+
+EXPORT_SYMBOL_GPL(num_exits_arr);
+EXPORT_SYMBOL_GPL(total_time);
+EXPORT_SYMBOL_GPL(exits);
+
 int kvm_emulate_cpuid(struct kvm_vcpu *vcpu)
 {
 	u32 eax, ebx, ecx, edx;
-
+u   int64_t sum_of_time = 0;
+    int i;
+    u64 convert;
+    
 	if (cpuid_fault_enabled(vcpu) && !kvm_require_cpl(vcpu, 0))
 		return 1;
 
 	eax = kvm_rax_read(vcpu);
 	ecx = kvm_rcx_read(vcpu);
-	kvm_cpuid(vcpu, &eax, &ebx, &ecx, &edx, true);
+    printk("eax = %d\n", eax);
+    
+    if (eax == 0x4fffffff) {
+       eax = (u32)atomic_read(&exits);
+       printk("eax = %d\n", eax);
+       printk("CPU Cycles: %d\n", (int)total_time[eax]);
+	}
+	// amount of time taken to process all exits
+	// high 32 in ebx & low 32 in ecx
+	else if (eax == 0x4ffffffe) {
+        for(i = 0; i < 65; i++)
+        {
+            sum_of_time += (u64)atomic_long_read(&total_time[i]);
+        }
+        ebx = sum_of_time >> 32;
+        ecx = sum_of_time;
+	}
+	// return the number of exits provided exit reason from ecx
+	else if (eax == 0x4ffffffd) {
+		eax = atomic_read(&num_exits_arr[ecx]);	
+	}
+	// return time taken with that exit reason
+	else if (eax == 0x4ffffffc) {
+            convert = (u64)atomic_long_read(&total_time[ecx]);
+			ebx = convert >> 32 & 0xFFFFFFFF;
+            ecx = convert & 0xFFFFFFFF;
+	}	
+	else kvm_cpuid(vcpu, &eax, &ebx, &ecx, &edx, true);
+    
 	kvm_rax_write(vcpu, eax);
 	kvm_rbx_write(vcpu, ebx);
 	kvm_rcx_write(vcpu, ecx);
