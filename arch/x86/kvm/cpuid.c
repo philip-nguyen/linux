@@ -24,6 +24,10 @@
 #include "trace.h"
 #include "pmu.h"
 
+#include <linux/atomic.h>
+#include <asm-generic/atomic.h>
+#include <asm-generic/atomic-long.h>
+
 static u32 xstate_required_size(u64 xstate_bv, bool compacted)
 {
 	int feature_bit = 0;
@@ -1058,6 +1062,9 @@ atomic_t exits = ATOMIC_INIT(0);
 atomic_long_t total_time[65] = ATOMIC_INIT(0);
 atomic_t num_exits_arr[65] = ATOMIC_INIT(0);
 
+//uint32_t test;
+//EXPORT_SYMBOL(test);
+
 EXPORT_SYMBOL_GPL(num_exits_arr);
 EXPORT_SYMBOL_GPL(total_time);
 EXPORT_SYMBOL_GPL(exits);
@@ -1065,7 +1072,7 @@ EXPORT_SYMBOL_GPL(exits);
 int kvm_emulate_cpuid(struct kvm_vcpu *vcpu)
 {
 	u32 eax, ebx, ecx, edx;
-u   int64_t sum_of_time = 0;
+    int64_t sum_of_time = 0;
     int i;
     u64 convert;
     
@@ -1098,10 +1105,13 @@ u   int64_t sum_of_time = 0;
 	// return time taken with that exit reason
 	else if (eax == 0x4ffffffc) {
             convert = (u64)atomic_long_read(&total_time[ecx]);
-			ebx = convert >> 32 & 0xFFFFFFFF;
-            ecx = convert & 0xFFFFFFFF;
+			ebx = convert & 0xFFFFFFFF >> 32 ; // high 32 bits
+            ecx = convert & 0xFFFFFFFF; // low 32 bits
 	}	
-	else kvm_cpuid(vcpu, &eax, &ebx, &ecx, &edx, true);
+	else 
+    {
+        kvm_cpuid(vcpu, &eax, &ebx, &ecx, &edx, true);
+    }
     
 	kvm_rax_write(vcpu, eax);
 	kvm_rbx_write(vcpu, ebx);
